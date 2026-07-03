@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Barbosa Dev · Gestão da Empresa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- ================= HEADER ================= -->
+    <header class="topbar" id="topbar">
+      <div class="topbar__left">
+        <div class="brand">
+          <div class="brand__mark">BD</div>
+          <div class="brand__text">
+            <span class="brand__name">Barbosa Dev</span>
+            <span class="brand__panel">Gestão da Empresa</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar__center">
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          Sistema operando normalmente
+        </div>
+      </div>
+
+      <div class="topbar__right">
+        <button class="icon-btn" title="Pesquisar" aria-label="Pesquisar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle
+              cx="11"
+              cy="11"
+              r="7"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <path
+              d="M21 21l-4.3-4.3"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+        <button class="icon-btn" title="Notificações" aria-label="Notificações">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M13.7 21a2 2 0 01-3.4 0"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="icon-btn__badge">3</span>
+        </button>
+        <div class="user-chip">
+          <div class="user-chip__avatar">RB</div>
+          <div class="user-chip__info">
+            <span class="user-chip__name">Rafael Barbosa</span>
+            <span class="user-chip__role">Founder &amp; CEO</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <!-- ================= FINANCIAL CARDS ================= -->
+      <section class="fin-grid" aria-label="Resumo financeiro">
+        <article
+          class="fin-card fin-card--revenue"
+          data-reveal
+          id="cardRevenue"
+        >
+          <div class="fin-card__top">
+            <span class="fin-card__label">Faturamento</span>
+            <span class="fin-card__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M3 17l6-6 4 4 8-8"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M14 7h7v7"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+          </div>
+          <div class="fin-card__value">
+            <span class="currency">R$</span
+            ><span
+              class="count-up"
+              id="revenueValue"
+              data-target="48250"
+              data-decimals="0"
+              >0</span
+            >
+          </div>
+          <div class="fin-card__foot">
+            <span class="trend trend--up" id="revenueTrend">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6 18L18 6M18 6H9M18 6v9"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span>18,4%</span>
+            </span>
+            <span class="fin-card__note" id="revenueNote"
+              >vs. mês anterior</span
+            >
+          </div>
+          <div class="fin-card__spark">
+            <svg viewBox="0 0 100 30" preserveAspectRatio="none">
+              <polyline
+                points="0,26 15,22 30,24 45,15 60,17 75,8 100,4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                vector-effect="non-scaling-stroke"
+              />
+            </svg>
+          </div>
+        </article>
+
+        <article class="fin-card fin-card--profit" data-reveal id="cardProfit">
+          <div class="fin-card__top">
+            <span class="fin-card__label">Lucro líquido</span>
+            <span class="fin-card__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <path
+                  d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1 3 2.2c0 2.8-6 1.5-6 4.2 0 1.3 1.3 2.3 3 2.3s3-1 3-2.4"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </span>
+          </div>
+          <div class="fin-card__value">
+            <span class="currency">R$</span
+            ><span
+              class="count-up"
+              id="profitValue"
+              data-target="29120"
+              data-decimals="0"
+              >0</span
+            >
+          </div>
+          <div class="fin-card__foot">
+            <span class="trend trend--up" id="profitTrend">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6 18L18 6M18 6H9M18 6v9"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span>Margem de 60,3%</span>
+            </span>
+            <span class="fin-card__note" id="profitNote">saudável</span>
+          </div>
+          <div class="fin-card__ring">
+            <svg viewBox="0 0 44 44">
+              <circle class="ring__track" cx="22" cy="22" r="18"></circle>
+              <circle
+                class="ring__value"
+                cx="22"
+                cy="22"
+                r="18"
+                data-progress="60.3"
+                id="profitRing"
+              ></circle>
+            </svg>
+          </div>
+        </article>
+
+        <article
+          class="fin-card fin-card--expenses"
+          data-reveal
+          id="cardExpenses"
+        >
+          <div class="fin-card__top">
+            <span class="fin-card__label">Despesas</span>
+            <span class="fin-card__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <rect
+                  x="3"
+                  y="6"
+                  width="18"
+                  height="13"
+                  rx="2"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <path d="M3 10h18" stroke="currentColor" stroke-width="2" />
+                <path
+                  d="M7 14h4"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </span>
+          </div>
+          <div class="fin-card__value">
+            <span class="currency">R$</span
+            ><span
+              class="count-up"
+              id="expensesValue"
+              data-target="19130"
+              data-decimals="0"
+              >0</span
+            >
+          </div>
+          <div class="fin-card__foot">
+            <span class="trend trend--down" id="expensesTrend">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6 6l12 12M18 18H9M18 18V9"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span>4,1%</span>
+            </span>
+            <span class="fin-card__note" id="expensesNote"
+              >abaixo do previsto</span
+            >
+          </div>
+          <div class="fin-card__bars">
+            <span style="--h: 40%"></span><span style="--h: 55%"></span
+            ><span style="--h: 35%"></span> <span style="--h: 70%"></span
+            ><span style="--h: 50%"></span><span style="--h: 30%"></span>
+          </div>
+        </article>
+      </section>
+
+      <!-- ================= REGISTROS DE CAIXA (API) ================= -->
+      <section class="panel caixa" data-reveal>
+        <div class="panel__head">
+          <div>
+            <h2>Registros de caixa</h2>
+            <p class="panel__sub">
+              Dados reais vindos da API — <code>/caixa</code>
+            </p>
+          </div>
+          <div class="panel__head-actions">
+            <span class="api-status" id="apiStatus">
+              <span class="status-dot"></span>
+              Conectando à API...
+            </span>
+            <button class="add-btn" id="addCaixaBtn" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Novo registro
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="clients-table">
+            <thead>
+              <tr>
+                <th>Período</th>
+                <th>Faturamento</th>
+                <th>Despesas</th>
+                <th>Lucro</th>
+                <th class="th-actions">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="caixaBody"></tbody>
+          </table>
+          <p class="table-empty" id="caixaEmpty" hidden>
+            Nenhum registro encontrado na API ainda.
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= ACTIVITIES + GOALS ================= -->
+      <section class="mid-grid">
+        <div class="panel activities" data-reveal>
+          <div class="panel__head">
+            <div>
+              <h2>Atividades</h2>
+              <p class="panel__sub">
+                Acompanhamento de entregas e tarefas em execução
+              </p>
+            </div>
+            <div class="panel__head-actions">
+              <div
+                class="segmented"
+                role="tablist"
+                aria-label="Período das atividades"
+              >
+                <button
+                  class="segmented__btn is-active"
+                  data-period="daily"
+                  role="tab"
+                  aria-selected="true"
+                >
+                  Diário
+                </button>
+                <button
+                  class="segmented__btn"
+                  data-period="weekly"
+                  role="tab"
+                  aria-selected="false"
+                >
+                  Semanal
+                </button>
+                <button
+                  class="segmented__btn"
+                  data-period="monthly"
+                  role="tab"
+                  aria-selected="false"
+                >
+                  Mensal
+                </button>
+              </div>
+              <button class="add-btn" id="addActivityBtn" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 5v14M5 12h14"
+                    stroke="currentColor"
+                    stroke-width="2.4"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                Nova tarefa
+              </button>
+            </div>
+          </div>
+
+          <div class="activity-list" id="activityList"></div>
+        </div>
+
+        <aside class="panel goals" data-reveal>
+          <div class="panel__head panel__head--tight">
+            <div>
+              <h2>Metas</h2>
+              <p class="panel__sub">Julho de 2026</p>
+            </div>
+            <button class="add-btn" id="addGoalBtn" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Nova meta
+            </button>
+          </div>
+
+          <div class="goal-main" id="goalMain"></div>
+
+          <ul class="goal-list" id="goalList"></ul>
+        </aside>
+      </section>
+
+      <!-- ================= CLIENTES ================= -->
+      <section class="panel clients" data-reveal>
+        <div class="panel__head">
+          <div>
+            <h2>Clientes</h2>
+            <p class="panel__sub">
+              Base ativa de contas geridas pela Barbosa Dev
+            </p>
+          </div>
+          <div class="clients__controls">
+            <div class="search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="7"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <path
+                  d="M21 21l-4.3-4.3"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <input
+                type="text"
+                id="clientSearch"
+                placeholder="Pesquisar cliente..."
+              />
+            </div>
+            <select id="serviceFilter" class="select-box">
+              <option value="todos">Todos os serviços</option>
+              <option value="Desenvolvimento">Desenvolvimento</option>
+              <option value="Landing Page">Landing Page</option>
+              <option value="E-commerce">E-commerce</option>
+              <option value="Tráfego Pago">Tráfego Pago</option>
+              <option value="Manutenção">Manutenção</option>
+            </select>
+            <button class="add-btn" id="addClientBtn" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Novo cliente
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="clients-table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Contato</th>
+                <th>Site</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Serviço</th>
+                <th>Status</th>
+                <th class="th-actions">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="clientsBody"></tbody>
+          </table>
+          <p class="table-empty" id="clientsEmpty" hidden>
+            Nenhum cliente encontrado para esse filtro.
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= CAMPANHAS ================= -->
+      <section class="panel campaigns" data-reveal>
+        <div class="panel__head">
+          <div>
+            <h2>Campanhas</h2>
+            <p class="panel__sub">
+              Performance dos investimentos em tráfego pago
+            </p>
+          </div>
+          <button class="add-btn" id="addCampaignBtn" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 5v14M5 12h14"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+              />
+            </svg>
+            Nova campanha
+          </button>
+        </div>
+
+        <div class="campaign-grid" id="campaignGrid"></div>
+      </section>
+
+      <footer class="app-footer">
+        <span>© 2026 Barbosa Dev — Painel interno de gestão</span>
+        <span>Dados fictícios para fins de demonstração</span>
+      </footer>
+    </main>
+
+    <!-- ================= MODAL (formulários de adicionar/editar) ================= -->
+    <div class="modal-overlay" id="modalOverlay" aria-hidden="true">
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalTitle"
+      >
+        <div class="modal__head">
+          <h3 id="modalTitle">Título</h3>
+          <button
+            class="modal__close"
+            id="modalClose"
+            type="button"
+            aria-label="Fechar"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M6 6l12 12M18 6L6 18"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <form class="modal__form" id="modalForm">
+          <div class="modal__fields" id="modalFields"></div>
+          <div class="modal__footer">
+            <button
+              type="button"
+              class="btn btn--ghost btn--danger"
+              id="modalDelete"
+              hidden
+            >
+              Excluir
+            </button>
+            <div class="modal__footer-right">
+              <button type="button" class="btn btn--ghost" id="modalCancel">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn--primary">Salvar</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= TOAST ================= -->
+    <div class="toast" id="toast"></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
