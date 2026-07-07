@@ -58,6 +58,24 @@ document.addEventListener("DOMContentLoaded", () => {
     return json;
   }
 
+  async function apiDelete(path) {
+    const res = await fetch(`${API_BASE}${path}`, { method: "DELETE" });
+    const json = await res.json().catch(() => ({ success: res.ok }));
+    if (!res.ok) throw new Error(`Falha ao excluir ${path}`);
+    return json;
+  }
+
+  async function apiPut(path, body) {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json) throw new Error(`Falha ao atualizar ${path}`);
+    return json;
+  }
+
   /* ---------------------------------------------------------
      1. DADOS (caixa vem da API; o restante segue mockado)
   --------------------------------------------------------- */
@@ -184,29 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
     atrasado: "Atrasado",
   };
 
-  const goalsData = {
-    main: { target: 20000, current: 12500 },
-    secondary: [
-      {
-        id: nextId(),
-        title: "Fechar 10 clientes",
-        sub: "8 de 10 fechados",
-        progress: 80,
-      },
-      {
-        id: nextId(),
-        title: "Criar 15 sites",
-        sub: "7 de 15 entregues",
-        progress: 47,
-      },
-      {
-        id: nextId(),
-        title: "R$ 5.000 em tráfego pago",
-        sub: "R$ 3.400 investidos",
-        progress: 68,
-      },
-    ],
-  };
+  let metasData = []; // preenchido via GET /metas
 
   let clientsData = [
     {
@@ -426,6 +422,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderField(f) {
+    if (f.type === "custom") return f.html;
     const wrapClass = f.full ? "field field--full" : "field";
     const val = f.value ?? "";
     if (f.type === "select") {
@@ -446,7 +443,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return `<label class="${wrapClass}"><span>${f.label}</span><input type="${f.type}" name="${f.name}" value="${escHtml(val)}" ${f.required ? "required" : ""} ${min} ${max} ${step} placeholder="${escHtml(f.placeholder || "")}"></label>`;
   }
 
-  function openModal({ title, fields, onSubmit, onDelete }) {
+  function openModal({ title, fields, onSubmit, onDelete, onRender }) {
     modalTitle.textContent = title;
     modalFields.innerHTML = fields.map(renderField).join("");
     modalDelete.hidden = !onDelete;
@@ -454,6 +451,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modalOverlay.classList.add("is-open");
     modalOverlay.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
+    if (onRender) onRender(modalFields);
     setTimeout(
       () => modalFields.querySelector("input, select, textarea")?.focus(),
       60,
@@ -666,6 +664,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="card-actions">
             <button type="button" class="icon-action icon-action--text" data-action="edit-faturamento" data-id="${r.id}" aria-label="Editar faturamento" title="Editar faturamento">${ICON_EDIT}<span>Fat.</span></button>
             <button type="button" class="icon-action icon-action--text" data-action="edit-despesas" data-id="${r.id}" aria-label="Editar despesas" title="Editar despesas">${ICON_EDIT}<span>Desp.</span></button>
+            <button type="button" class="icon-action icon-action--danger" data-action="delete-caixa" data-id="${r.id}" aria-label="Excluir registro" title="Excluir registro">${ICON_DELETE}</button>
           </div>
         </td>
       `;
@@ -696,6 +695,27 @@ document.addEventListener("DOMContentLoaded", () => {
     } finally {
       renderFinance();
     }
+  }
+
+  async function performDeleteCaixa(id) {
+    try {
+      await apiDelete(`/caixa/${id}`);
+      caixaData = caixaData.filter((r) => r.id !== id);
+      renderFinance();
+      showToast("Registro de caixa excluído.");
+    } catch (err) {
+      console.error(err);
+      showToast("Não foi possível excluir. Verifique a conexão com a API.");
+    }
+  }
+
+  function deleteCaixaWithConfirm(id) {
+    if (
+      confirm(
+        "Excluir este registro de caixa? Essa ação não pode ser desfeita.",
+      )
+    )
+      performDeleteCaixa(id);
   }
 
   function openCaixaModal() {
@@ -1004,27 +1024,49 @@ document.addEventListener("DOMContentLoaded", () => {
   const goalListEl = document.getElementById("goalList");
 
   function renderGoals() {
-    const m = goalsData.main;
-    const pct = Math.min(100, Math.round((m.current / m.target) * 1000) / 10);
+    const mainGoal = metasData.find((m) => m.type === "lucro");
+    const secondary = metasData.filter((m) => m.type !== "lucro");
 
-    goalMainEl.innerHTML = `
-      <div class="card-actions">
-        <button type="button" class="icon-action" data-action="edit-goal-main" aria-label="Editar meta mensal">${ICON_EDIT}</button>
-      </div>
-      <div class="goal-main__labels">
-        <span>Meta mensal</span>
-        <span class="goal-main__value">R$ <span class="count-up" data-target="${m.target}" data-decimals="0">0</span></span>
-      </div>
-      <div class="goal-bar"><div class="goal-bar__fill" id="goalMainFill" data-progress="${pct}" style="width:0%"></div></div>
-      <div class="goal-main__foot">
-        <span>Atual: <strong>R$ <span class="count-up" data-target="${m.current}" data-decimals="0">0</span></strong></span>
-        <span class="goal-main__pct">${pct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
-      </div>
-    `;
+    if (mainGoal) {
+      const target = parseFloat(mainGoal.name) || 0;
+      const current = parseFloat(mainGoal.description) || 0;
+      const pct =
+        target > 0
+          ? Math.min(100, Math.round((current / target) * 1000) / 10)
+          : 0;
+      goalMainEl.innerHTML = `
+        <div class="card-actions">
+          <button type="button" class="icon-action" data-action="edit-goal-main" data-id="${mainGoal.id_meta}" aria-label="Editar meta mensal">${ICON_EDIT}</button>
+          <button type="button" class="icon-action icon-action--danger" data-action="delete-goal" data-id="${mainGoal.id_meta}" aria-label="Excluir meta mensal">${ICON_DELETE}</button>
+        </div>
+        <div class="goal-main__labels">
+          <span>Meta mensal</span>
+          <span class="goal-main__value">R$ <span class="count-up" data-target="${target}" data-decimals="0">0</span></span>
+        </div>
+        <div class="goal-bar"><div class="goal-bar__fill" id="goalMainFill" data-progress="${pct}" style="width:0%"></div></div>
+        <div class="goal-main__foot">
+          <span>Atual: <strong>R$ <span class="count-up" data-target="${current}" data-decimals="0">0</span></strong></span>
+          <span class="goal-main__pct">${pct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
+        </div>
+      `;
+    } else {
+      goalMainEl.innerHTML = `
+        <div class="goal-main__empty">
+          <p>Nenhuma meta de lucro cadastrada ainda.</p>
+          <button type="button" class="add-btn" data-action="create-main-goal">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+            Definir meta mensal
+          </button>
+        </div>
+      `;
+    }
 
     goalListEl.innerHTML = "";
-    goalsData.secondary.forEach((g, i) => {
-      const progress = Math.max(0, Math.min(100, g.progress));
+    if (secondary.length === 0) {
+      goalListEl.innerHTML = `<li class="table-empty">Nenhuma meta adicional cadastrada.</li>`;
+    }
+    secondary.forEach((g, i) => {
+      const progress = Math.max(0, Math.min(100, g.progress ?? 0));
       const li = document.createElement("li");
       li.className = "goal-item";
       li.style.animationDelay = `${i * 0.07}s`;
@@ -1037,12 +1079,12 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="goal-ring__pct">${progress}%</span>
         </div>
         <div class="goal-item__info">
-          <span class="goal-item__title">${escHtml(g.title)}</span>
-          <span class="goal-item__sub">${escHtml(g.sub)}</span>
+          <span class="goal-item__title">${escHtml(g.name)}</span>
+          <span class="goal-item__sub">${escHtml(g.description)}</span>
         </div>
         <div class="card-actions">
-          <button type="button" class="icon-action" data-action="edit-goal" data-id="${g.id}" aria-label="Editar meta">${ICON_EDIT}</button>
-          <button type="button" class="icon-action icon-action--danger" data-action="delete-goal" data-id="${g.id}" aria-label="Excluir meta">${ICON_DELETE}</button>
+          <button type="button" class="icon-action" data-action="edit-goal" data-id="${g.id_meta}" aria-label="Editar meta">${ICON_EDIT}</button>
+          <button type="button" class="icon-action icon-action--danger" data-action="delete-goal" data-id="${g.id_meta}" aria-label="Excluir meta">${ICON_DELETE}</button>
         </div>
       `;
       goalListEl.appendChild(li);
@@ -1060,91 +1102,191 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function performDeleteGoal(id) {
-    goalsData.secondary = goalsData.secondary.filter((g) => g.id !== id);
-    renderGoals();
-    showToast("Meta excluída.");
+  async function loadMetasData() {
+    try {
+      const res = await apiGet("/metas");
+      metasData = Array.isArray(res.data)
+        ? res.data
+        : res.data
+          ? [res.data]
+          : [];
+    } catch (err) {
+      console.error(err);
+      metasData = [];
+      showToast("Falha ao carregar metas da API.");
+    } finally {
+      renderGoals();
+    }
+  }
+
+  async function performDeleteGoal(id) {
+    try {
+      await apiDelete(`/metas/${id}`);
+      metasData = metasData.filter((m) => m.id_meta !== id);
+      renderGoals();
+      showToast("Meta excluída.");
+    } catch (err) {
+      console.error(err);
+      showToast(
+        "Não foi possível excluir a meta. Verifique a conexão com a API.",
+      );
+    }
   }
   function deleteGoalWithConfirm(id) {
     if (confirm("Excluir esta meta?")) performDeleteGoal(id);
   }
 
-  function openGoalMainModal() {
-    const m = goalsData.main;
-    openModal({
-      title: "Editar meta mensal",
-      fields: [
-        {
-          name: "target",
-          label: "Meta (R$)",
-          type: "number",
-          step: "0.01",
-          required: true,
-          value: m.target,
-        },
-        {
-          name: "current",
-          label: "Valor atual (R$)",
-          type: "number",
-          step: "0.01",
-          required: true,
-          value: m.current,
-        },
-      ],
-      onSubmit(values) {
-        m.target = parseFloat(values.target) || 1;
-        m.current = parseFloat(values.current) || 0;
-        renderGoals();
-        showToast("Meta mensal atualizada.");
-      },
-    });
+  function getGoalPrefill(type, meta) {
+    if (!meta || meta.type !== type) {
+      return type === "lucro"
+        ? { targetValue: 0, currentValue: 0 }
+        : { name: "", description: "", progress: 0 };
+    }
+    return type === "lucro"
+      ? {
+          targetValue: parseFloat(meta.name) || 0,
+          currentValue: parseFloat(meta.description) || 0,
+        }
+      : {
+          name: meta.name || "",
+          description: meta.description || "",
+          progress: meta.progress ?? 0,
+        };
   }
 
-  function openGoalModal(id) {
+  function paintGoalValueFields(container, type, meta) {
+    const anchor = container.querySelector("#metaValueFields");
+    if (!anchor) return;
+    const p = getGoalPrefill(type, meta);
+    const fields =
+      type === "lucro"
+        ? [
+            {
+              name: "targetValue",
+              label: "Meta mensal (R$)",
+              type: "number",
+              step: "0.01",
+              required: true,
+              value: p.targetValue,
+            },
+            {
+              name: "currentValue",
+              label: "Valor atual (R$)",
+              type: "number",
+              step: "0.01",
+              required: true,
+              value: p.currentValue,
+            },
+          ]
+        : [
+            {
+              name: "name",
+              label: "Nome da meta",
+              type: "text",
+              required: true,
+              full: true,
+              value: p.name,
+            },
+            {
+              name: "description",
+              label: "Detalhe / descrição",
+              type: "text",
+              required: true,
+              full: true,
+              value: p.description,
+              placeholder: "Ex: 8 de 10 fechados",
+            },
+            {
+              name: "progress",
+              label: "Progresso (%)",
+              type: "number",
+              required: true,
+              min: 0,
+              max: 100,
+              value: p.progress,
+            },
+          ];
+    anchor.innerHTML = fields.map(renderField).join("");
+  }
+
+  function openGoalModal(id, defaultType = "meta") {
     const isEdit = !!id;
-    const g = isEdit ? goalsData.secondary.find((x) => x.id === id) : null;
+    const meta = isEdit ? metasData.find((m) => m.id_meta === id) : null;
+    const initialType = meta?.type || defaultType;
 
     openModal({
       title: isEdit ? "Editar meta" : "Nova meta",
       fields: [
         {
-          name: "title",
-          label: "Nome da meta",
-          type: "text",
+          name: "type",
+          label: "Tipo de meta",
+          type: "select",
           required: true,
-          full: true,
-          value: g?.title || "",
+          value: initialType,
+          options: [
+            { value: "lucro", label: "Lucro (meta mensal)" },
+            { value: "meta", label: "Meta padrão" },
+          ],
         },
         {
-          name: "sub",
-          label: "Detalhe / descrição",
-          type: "text",
+          name: "dataCaixa",
+          label: "Referente ao caixa (mês)",
+          type: "select",
           required: true,
           full: true,
-          value: g?.sub || "",
-          placeholder: "Ex: 5 de 10 concluídos",
+          value: meta?.dataCaixa || caixaData[0]?.id || "",
+          options: caixaData.length
+            ? caixaData.map((r) => ({ value: r.id, label: r.data }))
+            : [{ value: "", label: "Nenhum registro de caixa disponível" }],
         },
         {
-          name: "progress",
-          label: "Progresso (%)",
-          type: "number",
-          required: true,
-          min: 0,
-          max: 100,
-          value: g?.progress ?? 0,
+          type: "custom",
+          html: '<div class="field--full" id="metaValueFields" style="display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;"></div>',
         },
       ],
-      onSubmit(values) {
-        const payload = {
-          title: values.title.trim(),
-          sub: values.sub.trim(),
-          progress: Math.max(
-            0,
-            Math.min(100, parseInt(values.progress, 10) || 0),
-          ),
-        };
-        if (isEdit) Object.assign(g, payload);
-        else goalsData.secondary.push({ id: nextId(), ...payload });
+      onRender(container) {
+        const typeSelect = container.querySelector('[name="type"]');
+        paintGoalValueFields(container, typeSelect.value, meta);
+        typeSelect.addEventListener("change", () =>
+          paintGoalValueFields(container, typeSelect.value, meta),
+        );
+      },
+      async onSubmit(values) {
+        const type = values.type;
+        let payload;
+
+        if (type === "lucro") {
+          const target = parseFloat(values.targetValue) || 0;
+          const current = parseFloat(values.currentValue) || 0;
+          const progress =
+            target > 0 ? Math.round((current / target) * 1000) / 10 : 0;
+          payload = {
+            name: String(target),
+            description: String(current),
+            dataCaixa: values.dataCaixa,
+            type: "lucro",
+            progress,
+          };
+        } else {
+          payload = {
+            name: values.name.trim(),
+            description: values.description.trim(),
+            dataCaixa: values.dataCaixa,
+            type: "meta",
+            progress: Math.max(
+              0,
+              Math.min(100, parseInt(values.progress, 10) || 0),
+            ),
+          };
+        }
+
+        if (isEdit) {
+          const res = await apiPut("/metas", { id, data: payload });
+          Object.assign(meta, res.data || payload);
+        } else {
+          const res = await apiPost("/metas", payload);
+          metasData.push(res.data || { id_meta: nextId(), ...payload });
+        }
         renderGoals();
         showToast(isEdit ? "Meta atualizada." : "Meta adicionada.");
       },
@@ -1154,9 +1296,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document
     .getElementById("addGoalBtn")
-    .addEventListener("click", () => openGoalModal(null));
+    .addEventListener("click", () => openGoalModal(null, "meta"));
 
-  renderGoals();
+  loadMetasData();
 
   /* ---------------------------------------------------------
      8. CLIENTES — tabela, busca, filtro, adicionar/editar/excluir
@@ -1520,7 +1662,10 @@ document.addEventListener("DOMContentLoaded", () => {
         deleteActivityWithConfirm(currentPeriod, id);
         break;
       case "edit-goal-main":
-        openGoalMainModal();
+        openGoalModal(id, "lucro");
+        break;
+      case "create-main-goal":
+        openGoalModal(null, "lucro");
         break;
       case "edit-goal":
         openGoalModal(id);
@@ -1545,6 +1690,9 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
       case "edit-despesas":
         openEditDespesasModal(id);
+        break;
+      case "delete-caixa":
+        deleteCaixaWithConfirm(id);
         break;
     }
   });
