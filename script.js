@@ -295,63 +295,7 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   ];
 
-  let campaignsData = [
-    {
-      id: nextId(),
-      name: "Lançamento Loja Vitrine",
-      channel: "Meta Ads",
-      invested: 500,
-      cpi: 3.2,
-      cpv: 12,
-      leads: 120,
-      sales: 15,
-      chart: [30, 45, 40, 60, 55, 75, 90],
-    },
-    {
-      id: nextId(),
-      name: "Institucional Delta Corp",
-      channel: "Google Ads",
-      invested: 820,
-      cpi: 4.1,
-      cpv: 18,
-      leads: 96,
-      sales: 9,
-      chart: [50, 40, 55, 48, 62, 58, 70],
-    },
-    {
-      id: nextId(),
-      name: "Reativação Clínica Vida+",
-      channel: "Meta Ads",
-      invested: 340,
-      cpi: 2.8,
-      cpv: 9,
-      leads: 74,
-      sales: 11,
-      chart: [20, 35, 30, 42, 50, 45, 60],
-    },
-    {
-      id: nextId(),
-      name: "Awareness Studio Nix",
-      channel: "TikTok Ads",
-      invested: 610,
-      cpi: 3.6,
-      cpv: 14,
-      leads: 150,
-      sales: 18,
-      chart: [40, 55, 65, 60, 80, 85, 95],
-    },
-  ];
-
-  const generateChart = () => {
-    let v = 30 + Math.random() * 20;
-    const arr = [];
-    for (let i = 0; i < 7; i++) {
-      v += (Math.random() - 0.3) * 15;
-      v = Math.max(10, Math.min(100, v));
-      arr.push(Math.round(v));
-    }
-    return arr;
-  };
+  let campaignsData = []; // preenchido via GET /campanhas
 
   /* ---------------------------------------------------------
      2. ANIMAÇÃO DE ENTRADA (stagger)
@@ -694,6 +638,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("Falha ao carregar dados de /caixa.");
     } finally {
       renderFinance();
+      renderGoals();
     }
   }
 
@@ -702,6 +647,7 @@ document.addEventListener("DOMContentLoaded", () => {
       await apiDelete(`/caixa/${id}`);
       caixaData = caixaData.filter((r) => r.id !== id);
       renderFinance();
+      renderGoals();
       showToast("Registro de caixa excluído.");
     } catch (err) {
       console.error(err);
@@ -758,6 +704,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (res.data) caixaData.push(res.data);
         else await loadCaixaData({ silent: true });
         renderFinance();
+        renderGoals();
         showToast("Registro de caixa adicionado.");
       },
     });
@@ -791,6 +738,7 @@ document.addEventListener("DOMContentLoaded", () => {
           record.lucro = novoValor - Number(record.despesas || 0);
         }
         renderFinance();
+        renderGoals();
         showToast("Faturamento atualizado.");
       },
     });
@@ -821,6 +769,7 @@ document.addEventListener("DOMContentLoaded", () => {
           record.lucro = Number(record.faturamento || 0) - novoValor;
         }
         renderFinance();
+        renderGoals();
         showToast("Despesas atualizadas.");
       },
     });
@@ -1029,23 +978,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (mainGoal) {
       const target = parseFloat(mainGoal.name) || 0;
-      const current = parseFloat(mainGoal.description) || 0;
+      const linkedCaixa = caixaData.find((r) => r.id === mainGoal.dataCaixa);
+      const current = linkedCaixa
+        ? Number(linkedCaixa.lucro || 0)
+        : parseFloat(mainGoal.description) || 0;
       const pct =
         target > 0
           ? Math.min(100, Math.round((current / target) * 1000) / 10)
           : 0;
+      const periodLabel = linkedCaixa
+        ? linkedCaixa.data
+        : "caixa não encontrado";
       goalMainEl.innerHTML = `
         <div class="card-actions">
           <button type="button" class="icon-action" data-action="edit-goal-main" data-id="${mainGoal.id_meta}" aria-label="Editar meta mensal">${ICON_EDIT}</button>
           <button type="button" class="icon-action icon-action--danger" data-action="delete-goal" data-id="${mainGoal.id_meta}" aria-label="Excluir meta mensal">${ICON_DELETE}</button>
         </div>
         <div class="goal-main__labels">
-          <span>Meta mensal</span>
+          <span>Meta mensal <span class="goal-main__linked">· vinculada a ${escHtml(periodLabel)}</span></span>
           <span class="goal-main__value">R$ <span class="count-up" data-target="${target}" data-decimals="0">0</span></span>
         </div>
         <div class="goal-bar"><div class="goal-bar__fill" id="goalMainFill" data-progress="${pct}" style="width:0%"></div></div>
         <div class="goal-main__foot">
-          <span>Atual: <strong>R$ <span class="count-up" data-target="${current}" data-decimals="0">0</span></strong></span>
+          <span>Lucro atual do caixa: <strong>R$ <span class="count-up" data-target="${current}" data-decimals="0">0</span></strong></span>
           <span class="goal-main__pct">${pct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
         </div>
       `;
@@ -1139,14 +1094,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function getGoalPrefill(type, meta) {
     if (!meta || meta.type !== type) {
       return type === "lucro"
-        ? { targetValue: 0, currentValue: 0 }
+        ? { targetValue: 0 }
         : { name: "", description: "", progress: 0 };
     }
     return type === "lucro"
-      ? {
-          targetValue: parseFloat(meta.name) || 0,
-          currentValue: parseFloat(meta.description) || 0,
-        }
+      ? { targetValue: parseFloat(meta.name) || 0 }
       : {
           name: meta.name || "",
           description: meta.description || "",
@@ -1154,59 +1106,57 @@ document.addEventListener("DOMContentLoaded", () => {
         };
   }
 
+  function getLinkedLucro(caixaId) {
+    const rec = caixaData.find((r) => r.id === caixaId);
+    return rec ? Number(rec.lucro || 0) : 0;
+  }
+
   function paintGoalValueFields(container, type, meta) {
     const anchor = container.querySelector("#metaValueFields");
     if (!anchor) return;
     const p = getGoalPrefill(type, meta);
-    const fields =
-      type === "lucro"
-        ? [
-            {
-              name: "targetValue",
-              label: "Meta mensal (R$)",
-              type: "number",
-              step: "0.01",
-              required: true,
-              value: p.targetValue,
-            },
-            {
-              name: "currentValue",
-              label: "Valor atual (R$)",
-              type: "number",
-              step: "0.01",
-              required: true,
-              value: p.currentValue,
-            },
-          ]
-        : [
-            {
-              name: "name",
-              label: "Nome da meta",
-              type: "text",
-              required: true,
-              full: true,
-              value: p.name,
-            },
-            {
-              name: "description",
-              label: "Detalhe / descrição",
-              type: "text",
-              required: true,
-              full: true,
-              value: p.description,
-              placeholder: "Ex: 8 de 10 fechados",
-            },
-            {
-              name: "progress",
-              label: "Progresso (%)",
-              type: "number",
-              required: true,
-              min: 0,
-              max: 100,
-              value: p.progress,
-            },
-          ];
-    anchor.innerHTML = fields.map(renderField).join("");
+
+    if (type === "lucro") {
+      const dataCaixaSelect = container.querySelector('[name="dataCaixa"]');
+      const linkedLucro = getLinkedLucro(dataCaixaSelect?.value);
+      anchor.innerHTML = `
+        ${renderField({ name: "targetValue", label: "Meta mensal (R$)", type: "number", step: "0.01", required: true, value: p.targetValue })}
+        <label class="field">
+          <span>Lucro atual (do caixa selecionado)</span>
+          <input type="text" id="linkedLucroDisplay" value="${escHtml(formatBRL(linkedLucro))}" disabled>
+        </label>
+      `;
+    } else {
+      const fields = [
+        {
+          name: "name",
+          label: "Nome da meta",
+          type: "text",
+          required: true,
+          full: true,
+          value: p.name,
+        },
+        {
+          name: "description",
+          label: "Detalhe / descrição",
+          type: "text",
+          required: true,
+          full: true,
+          value: p.description,
+          placeholder: "Ex: 8 de 10 fechados",
+        },
+        {
+          name: "progress",
+          label: "Progresso (%)",
+          type: "number",
+          required: true,
+          min: 0,
+          max: 100,
+          value: p.progress,
+        },
+      ];
+      anchor.innerHTML = fields.map(renderField).join("");
+    }
   }
 
   function openGoalModal(id, defaultType = "meta") {
@@ -1246,10 +1196,22 @@ document.addEventListener("DOMContentLoaded", () => {
       ],
       onRender(container) {
         const typeSelect = container.querySelector('[name="type"]');
+        const dataCaixaSelect = container.querySelector('[name="dataCaixa"]');
+
         paintGoalValueFields(container, typeSelect.value, meta);
+
         typeSelect.addEventListener("change", () =>
           paintGoalValueFields(container, typeSelect.value, meta),
         );
+
+        // Quando o caixa selecionado muda e o tipo é "lucro", só atualiza o valor exibido
+        // (sem repintar tudo, pra não perder o valor de "meta mensal" já digitado).
+        dataCaixaSelect.addEventListener("change", () => {
+          if (typeSelect.value !== "lucro") return;
+          const display = container.querySelector("#linkedLucroDisplay");
+          if (display)
+            display.value = formatBRL(getLinkedLucro(dataCaixaSelect.value));
+        });
       },
       async onSubmit(values) {
         const type = values.type;
@@ -1257,7 +1219,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (type === "lucro") {
           const target = parseFloat(values.targetValue) || 0;
-          const current = parseFloat(values.currentValue) || 0;
+          const current = getLinkedLucro(values.dataCaixa);
           const progress =
             target > 0 ? Math.round((current / target) * 1000) / 10 : 0;
           payload = {
@@ -1480,48 +1442,84 @@ document.addEventListener("DOMContentLoaded", () => {
   renderClients();
 
   /* ---------------------------------------------------------
-     9. CAMPANHAS — cards, adicionar/editar/excluir
+     9. CAMPANHAS — dados reais da API (/campanhas)
   --------------------------------------------------------- */
   const campaignGrid = document.getElementById("campaignGrid");
+
+  const formatDateBR = (isoStr) => {
+    if (!isoStr) return "—";
+    const d = new Date(isoStr);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const toDateInputValue = (isoStr) => {
+    if (!isoStr) return "";
+    const d = new Date(isoStr);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toISOString().slice(0, 10);
+  };
+
+  const computeCpi = (value_inv, interessados) =>
+    interessados > 0 ? value_inv / interessados : 0;
+  const computeCpv = (value_inv, vendas) =>
+    vendas > 0 ? value_inv / vendas : 0;
 
   function renderCampaigns() {
     campaignGrid.innerHTML = "";
 
     if (campaignsData.length === 0) {
-      campaignGrid.innerHTML = `<p class="table-empty">Nenhuma campanha cadastrada.</p>`;
+      campaignGrid.innerHTML = `<p class="table-empty">Nenhuma campanha cadastrada ainda.</p>`;
       return;
     }
 
     campaignsData.forEach((camp, i) => {
-      const maxVal = Math.max(...camp.chart, 1);
+      const interessados = Number(camp.interessados || 0);
+      const vendas = Number(camp.vendas || 0);
+      const maxVal = Math.max(interessados, vendas, 1);
+      const conv = interessados > 0 ? (vendas / interessados) * 100 : 0;
+
       const card = document.createElement("div");
       card.className = "campaign-card";
       card.style.animationDelay = `${i * 0.08}s`;
-      const bars = camp.chart
-        .map((v) => `<span style="--h:${(v / maxVal) * 100}%"></span>`)
-        .join("");
 
       card.innerHTML = `
         <div class="campaign-card__head">
           <div class="campaign-card__head-info">
             <span class="campaign-card__name">${escHtml(camp.name)}</span>
-            <span class="campaign-card__channel">${escHtml(camp.channel)}</span>
+            <span class="campaign-card__channel">${escHtml(camp.canal)}</span>
           </div>
           <div class="card-actions">
-            <button type="button" class="icon-action" data-action="edit-campaign" data-id="${camp.id}" aria-label="Editar campanha">${ICON_EDIT}</button>
-            <button type="button" class="icon-action icon-action--danger" data-action="delete-campaign" data-id="${camp.id}" aria-label="Excluir campanha">${ICON_DELETE}</button>
+            <button type="button" class="icon-action" data-action="edit-campaign" data-id="${camp.id_campanha}" aria-label="Editar campanha">${ICON_EDIT}</button>
+            <button type="button" class="icon-action icon-action--danger" data-action="delete-campaign" data-id="${camp.id_campanha}" aria-label="Excluir campanha">${ICON_DELETE}</button>
           </div>
         </div>
+        <div class="campaign-card__period">${formatDateBR(camp.dateInit)} → ${formatDateBR(camp.dateFinish)}</div>
         <div class="campaign-card__stats">
-          <div class="campaign-stat"><span class="campaign-stat__label">Investido</span><span class="campaign-stat__value">${formatBRL(camp.invested)}</span></div>
-          <div class="campaign-stat"><span class="campaign-stat__label">Interessados</span><span class="campaign-stat__value">${camp.leads}</span></div>
+          <div class="campaign-stat"><span class="campaign-stat__label">Investido</span><span class="campaign-stat__value">${formatBRL(camp.value_inv)}</span></div>
+          <div class="campaign-stat"><span class="campaign-stat__label">Interessados</span><span class="campaign-stat__value">${interessados}</span></div>
           <div class="campaign-stat"><span class="campaign-stat__label">CPI</span><span class="campaign-stat__value">${formatBRL(camp.cpi)}</span></div>
           <div class="campaign-stat"><span class="campaign-stat__label">CPV</span><span class="campaign-stat__value">${formatBRL(camp.cpv)}</span></div>
         </div>
-        <div class="campaign-card__chart">${bars}</div>
+        <div class="campaign-card__compare">
+          <div class="compare-row">
+            <span class="compare-row__label">Interessados</span>
+            <div class="compare-track"><div class="compare-fill compare-fill--blue" data-w="${(interessados / maxVal) * 100}"></div></div>
+            <span class="compare-row__value">${interessados}</span>
+          </div>
+          <div class="compare-row">
+            <span class="compare-row__label">Vendas</span>
+            <div class="compare-track"><div class="compare-fill compare-fill--green" data-w="${(vendas / maxVal) * 100}"></div></div>
+            <span class="compare-row__value">${vendas}</span>
+          </div>
+        </div>
         <div class="campaign-card__conv">
-          <span>Vendas geradas</span>
-          <strong>${camp.sales} vendas</strong>
+          <span>Taxa de conversão</span>
+          <strong>${conv.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</strong>
         </div>
       `;
       campaignGrid.appendChild(card);
@@ -1529,17 +1527,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
     requestAnimationFrame(() => {
       setTimeout(() => {
-        campaignGrid
-          .querySelectorAll(".campaign-card__chart")
-          .forEach((el) => el.classList.add("is-animated"));
-      }, 100);
+        campaignGrid.querySelectorAll(".compare-fill").forEach((el) => {
+          el.style.width = `${el.dataset.w}%`;
+        });
+      }, 80);
     });
   }
 
-  function performDeleteCampaign(id) {
-    campaignsData = campaignsData.filter((c) => c.id !== id);
-    renderCampaigns();
-    showToast("Campanha removida.");
+  async function loadCampaignsData() {
+    try {
+      const res = await apiGet("/campanhas");
+      campaignsData = Array.isArray(res.data)
+        ? res.data
+        : res.data
+          ? [res.data]
+          : [];
+    } catch (err) {
+      console.error(err);
+      campaignsData = [];
+      showToast("Falha ao carregar campanhas da API.");
+    } finally {
+      renderCampaigns();
+    }
+  }
+
+  async function performDeleteCampaign(id) {
+    try {
+      await apiDelete(`/campanhas/${id}`);
+      campaignsData = campaignsData.filter((c) => c.id_campanha !== id);
+      renderCampaigns();
+      showToast("Campanha removida.");
+    } catch (err) {
+      console.error(err);
+      showToast("Não foi possível excluir. Verifique a conexão com a API.");
+    }
   }
   function deleteCampaignWithConfirm(id) {
     if (confirm("Excluir esta campanha?")) performDeleteCampaign(id);
@@ -1547,7 +1568,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function openCampaignModal(id) {
     const isEdit = !!id;
-    const c = isEdit ? campaignsData.find((x) => x.id === id) : null;
+    const c = isEdit ? campaignsData.find((x) => x.id_campanha === id) : null;
 
     openModal({
       title: isEdit ? "Editar campanha" : "Nova campanha",
@@ -1561,11 +1582,11 @@ document.addEventListener("DOMContentLoaded", () => {
           value: c?.name || "",
         },
         {
-          name: "channel",
+          name: "canal",
           label: "Canal",
           type: "select",
           required: true,
-          value: c?.channel || "Meta Ads",
+          value: c?.canal || "Meta Ads",
           options: [
             { value: "Meta Ads", label: "Meta Ads" },
             { value: "Google Ads", label: "Google Ads" },
@@ -1574,64 +1595,116 @@ document.addEventListener("DOMContentLoaded", () => {
           ],
         },
         {
-          name: "invested",
+          name: "dateInit",
+          label: "Data de início",
+          type: "date",
+          required: true,
+          value: toDateInputValue(c?.dateInit),
+        },
+        {
+          name: "dateFinish",
+          label: "Data de término",
+          type: "date",
+          required: true,
+          value: toDateInputValue(c?.dateFinish),
+        },
+        {
+          name: "value_inv",
           label: "Valor investido (R$)",
           type: "number",
           step: "0.01",
           required: true,
-          value: c?.invested ?? 0,
+          value: c?.value_inv ?? 0,
         },
         {
-          name: "cpi",
-          label: "CPI (R$)",
-          type: "number",
-          step: "0.01",
-          required: true,
-          value: c?.cpi ?? 0,
-        },
-        {
-          name: "cpv",
-          label: "CPV (R$)",
-          type: "number",
-          step: "0.01",
-          required: true,
-          value: c?.cpv ?? 0,
-        },
-        {
-          name: "leads",
+          name: "interessados",
           label: "Interessados",
           type: "number",
           required: true,
           min: 0,
-          value: c?.leads ?? 0,
+          value: c?.interessados ?? 0,
         },
         {
-          name: "sales",
+          name: "vendas",
           label: "Vendas",
           type: "number",
           required: true,
           min: 0,
-          value: c?.sales ?? 0,
+          value: c?.vendas ?? 0,
+        },
+        {
+          type: "custom",
+          html: `<div class="field--full campaign-preview" id="cpiCpvPreview">
+                   <span>CPI estimado: <strong id="cpiPreviewValue">${formatBRL(computeCpi(c?.value_inv ?? 0, c?.interessados ?? 0))}</strong></span>
+                   <span>CPV estimado: <strong id="cpvPreviewValue">${formatBRL(computeCpv(c?.value_inv ?? 0, c?.vendas ?? 0))}</strong></span>
+                 </div>`,
         },
       ],
-      onSubmit(values) {
-        const payload = {
-          name: values.name.trim(),
-          channel: values.channel,
-          invested: parseFloat(values.invested) || 0,
-          cpi: parseFloat(values.cpi) || 0,
-          cpv: parseFloat(values.cpv) || 0,
-          leads: parseInt(values.leads, 10) || 0,
-          sales: parseInt(values.sales, 10) || 0,
-        };
+      onRender(container) {
+        const valueInvInput = container.querySelector('[name="value_inv"]');
+        const interessadosInput = container.querySelector(
+          '[name="interessados"]',
+        );
+        const vendasInput = container.querySelector('[name="vendas"]');
+        const cpiOut = container.querySelector("#cpiPreviewValue");
+        const cpvOut = container.querySelector("#cpvPreviewValue");
+
+        function updatePreview() {
+          const vi = parseFloat(valueInvInput.value) || 0;
+          const ints = parseInt(interessadosInput.value, 10) || 0;
+          const vds = parseInt(vendasInput.value, 10) || 0;
+          cpiOut.textContent = formatBRL(computeCpi(vi, ints));
+          cpvOut.textContent = formatBRL(computeCpv(vi, vds));
+        }
+        [valueInvInput, interessadosInput, vendasInput].forEach((el) =>
+          el.addEventListener("input", updatePreview),
+        );
+      },
+      async onSubmit(values) {
+        const value_inv = parseFloat(values.value_inv) || 0;
+        const interessados = parseInt(values.interessados, 10) || 0;
+        const vendas = parseInt(values.vendas, 10) || 0;
+        const dateInit = new Date(values.dateInit).toISOString();
+        const dateFinish = new Date(values.dateFinish).toISOString();
+        const name = values.name.trim();
+        const canal = values.canal;
+
         if (isEdit) {
-          Object.assign(c, payload);
+          const cpi = computeCpi(value_inv, interessados);
+          const cpv = computeCpv(value_inv, vendas);
+          const payload = {
+            id_campanha: id,
+            dateInit,
+            dateFinish,
+            name,
+            canal,
+            value_inv,
+            cpi,
+            cpv,
+            interessados,
+            vendas,
+          };
+          const res = await apiPut("/campanhas", payload);
+          Object.assign(c, res.data || payload);
         } else {
-          campaignsData.unshift({
-            id: nextId(),
-            ...payload,
-            chart: generateChart(),
-          });
+          const payload = {
+            dateInit,
+            dateFinish,
+            name,
+            canal,
+            value_inv,
+            interessados,
+            vendas,
+          };
+          const res = await apiPost("/campanhas", payload);
+          campaignsData.push(
+            res.data || {
+              id_campanha: nextId(),
+              ...payload,
+              cpi: computeCpi(value_inv, interessados),
+              cpv: computeCpv(value_inv, vendas),
+            },
+          );
         }
         renderCampaigns();
         showToast(isEdit ? "Campanha atualizada." : "Campanha adicionada.");
@@ -1644,7 +1717,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("addCampaignBtn")
     .addEventListener("click", () => openCampaignModal(null));
 
-  renderCampaigns();
+  loadCampaignsData();
 
   /* ---------------------------------------------------------
      10. DELEGAÇÃO GLOBAL DE CLIQUES (editar/excluir nos itens)
