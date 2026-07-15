@@ -696,8 +696,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="activity-card__head-right">
             <span class="activity-card__status status--${item.status}">${statusLabels[item.status] || item.status}</span>
             <div class="card-actions">
-              <button type="button" class="icon-action" data-action="edit-activity" data-id="${item.id}" aria-label="Editar tarefa">${ICON_EDIT}</button>
-              <button type="button" class="icon-action icon-action--danger" data-action="delete-activity" data-id="${item.id}" aria-label="Excluir tarefa">${ICON_DELETE}</button>
+              <button type="button" class="icon-action" data-action="edit-activity" data-id="${item.id_atividade}" aria-label="Editar tarefa">${ICON_EDIT}</button>
+              <button type="button" class="icon-action icon-action--danger" data-action="delete-activity" data-id="${item.id_atividade}" aria-label="Excluir tarefa">${ICON_DELETE}</button>
             </div>
           </div>
         </div>
@@ -754,7 +754,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function performDeleteActivity(id) {
     try {
       await apiDelete(`/atividades/${id}`);
-      activitiesData = activitiesData.filter((a) => a.id !== id);
+      activitiesData = activitiesData.filter((a) => a.id_atividade !== id);
       renderActivities(currentPeriod);
       showToast("Tarefa excluída.");
     } catch (err) {
@@ -768,7 +768,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function openActivityModal(id) {
     const isEdit = !!id;
-    const item = isEdit ? activitiesData.find((a) => a.id === id) : null;
+    const item = isEdit
+      ? activitiesData.find((a) => a.id_atividade === id)
+      : null;
 
     const fields = [
       {
@@ -852,7 +854,9 @@ document.addEventListener("DOMContentLoaded", () => {
           Object.assign(item, res.data || payload);
         } else {
           const res = await apiPost("/atividades", payload);
-          activitiesData.unshift(res.data || { id: nextId(), ...payload });
+          activitiesData.unshift(
+            res.data || { id_atividade: nextId(), ...payload },
+          );
         }
 
         if (payload.period !== currentPeriod) {
