@@ -81,118 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
   --------------------------------------------------------- */
   let caixaData = []; // preenchido via GET /caixa
 
-  const activitiesData = {
-    daily: [
-      {
-        id: nextId(),
-        title: "Criar landing page cliente XPTO",
-        category: "Desenvolvimento",
-        date: "Hoje, 09:40",
-        status: "andamento",
-        progress: 70,
-      },
-      {
-        id: nextId(),
-        title: "Revisar copy da campanha Instagram",
-        category: "Marketing",
-        date: "Hoje, 11:15",
-        status: "pendente",
-        progress: 15,
-      },
-      {
-        id: nextId(),
-        title: "Reunião de alinhamento com Studio Nix",
-        category: "Comercial",
-        date: "Hoje, 14:00",
-        status: "concluido",
-        progress: 100,
-      },
-      {
-        id: nextId(),
-        title: "Ajustar responsividade do checkout",
-        category: "Desenvolvimento",
-        date: "Hoje, 16:30",
-        status: "atrasado",
-        progress: 40,
-      },
-    ],
-    weekly: [
-      {
-        id: nextId(),
-        title: "Entrega do site institucional Delta Corp",
-        category: "Desenvolvimento",
-        date: "Seg → Sex",
-        status: "andamento",
-        progress: 82,
-      },
-      {
-        id: nextId(),
-        title: "Setup de tráfego pago — Loja Vitrine",
-        category: "Tráfego Pago",
-        date: "Ter → Qui",
-        status: "andamento",
-        progress: 55,
-      },
-      {
-        id: nextId(),
-        title: "Manutenção mensal — 6 clientes ativos",
-        category: "Manutenção",
-        date: "Qua → Sex",
-        status: "pendente",
-        progress: 20,
-      },
-      {
-        id: nextId(),
-        title: "Proposta comercial — Grupo Aurora",
-        category: "Comercial",
-        date: "Qui",
-        status: "concluido",
-        progress: 100,
-      },
-      {
-        id: nextId(),
-        title: "Otimização de SEO — Clínica Vida+",
-        category: "Marketing",
-        date: "Sex",
-        status: "atrasado",
-        progress: 30,
-      },
-    ],
-    monthly: [
-      {
-        id: nextId(),
-        title: "Roadmap de produto — Q3 2026",
-        category: "Estratégia",
-        date: "Julho/2026",
-        status: "andamento",
-        progress: 45,
-      },
-      {
-        id: nextId(),
-        title: "Fechamento financeiro do mês",
-        category: "Financeiro",
-        date: "Julho/2026",
-        status: "pendente",
-        progress: 10,
-      },
-      {
-        id: nextId(),
-        title: "Onboarding de 3 novos clientes",
-        category: "Comercial",
-        date: "Julho/2026",
-        status: "andamento",
-        progress: 60,
-      },
-      {
-        id: nextId(),
-        title: "Campanha institucional de aniversário",
-        category: "Marketing",
-        date: "Julho/2026",
-        status: "concluido",
-        progress: 100,
-      },
-    ],
-  };
+  let activitiesData = []; // preenchido via GET /atividades (lista plana; filtrada por "period" na exibição)
   let currentPeriod = "daily";
 
   const statusLabels = {
@@ -789,7 +678,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderActivities(period) {
     currentPeriod = period;
-    const items = activitiesData[period] || [];
+    const items = activitiesData.filter((a) => a.period === period);
     activityList.innerHTML = "";
 
     if (items.length === 0) {
@@ -803,9 +692,9 @@ document.addEventListener("DOMContentLoaded", () => {
       card.style.animationDelay = `${i * 0.07}s`;
       card.innerHTML = `
         <div class="activity-card__head">
-          <span class="activity-card__title">${escHtml(item.title)}</span>
+          <span class="activity-card__title">${escHtml(item.name)}</span>
           <div class="activity-card__head-right">
-            <span class="activity-card__status status--${item.status}">${statusLabels[item.status]}</span>
+            <span class="activity-card__status status--${item.status}">${statusLabels[item.status] || item.status}</span>
             <div class="card-actions">
               <button type="button" class="icon-action" data-action="edit-activity" data-id="${item.id}" aria-label="Editar tarefa">${ICON_EDIT}</button>
               <button type="button" class="icon-action icon-action--danger" data-action="delete-activity" data-id="${item.id}" aria-label="Excluir tarefa">${ICON_DELETE}</button>
@@ -814,7 +703,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div class="activity-card__meta">
           <span class="activity-card__tag">${escHtml(item.category)}</span>
-          <span>${escHtml(item.date)}</span>
+          <span>${escHtml(item.data_prazo)}</span>
         </div>
         <div class="activity-card__progress">
           <div class="progress-track"><div class="progress-fill" style="width:0%" data-progress="${item.progress}"></div></div>
@@ -845,29 +734,50 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  function performDeleteActivity(period, id) {
-    activitiesData[period] = activitiesData[period].filter((a) => a.id !== id);
-    renderActivities(currentPeriod);
-    showToast("Tarefa excluída.");
-  }
-  function deleteActivityWithConfirm(period, id) {
-    if (confirm("Excluir esta tarefa?")) performDeleteActivity(period, id);
+  async function loadActivitiesData() {
+    try {
+      const res = await apiGet("/atividades");
+      activitiesData = Array.isArray(res.data)
+        ? res.data
+        : res.data
+          ? [res.data]
+          : [];
+    } catch (err) {
+      console.error(err);
+      activitiesData = [];
+      showToast("Falha ao carregar atividades da API.");
+    } finally {
+      renderActivities(currentPeriod);
+    }
   }
 
-  function openActivityModal(period, id) {
+  async function performDeleteActivity(id) {
+    try {
+      await apiDelete(`/atividades/${id}`);
+      activitiesData = activitiesData.filter((a) => a.id !== id);
+      renderActivities(currentPeriod);
+      showToast("Tarefa excluída.");
+    } catch (err) {
+      console.error(err);
+      showToast("Não foi possível excluir. Verifique a conexão com a API.");
+    }
+  }
+  function deleteActivityWithConfirm(id) {
+    if (confirm("Excluir esta tarefa?")) performDeleteActivity(id);
+  }
+
+  function openActivityModal(id) {
     const isEdit = !!id;
-    const item = isEdit
-      ? activitiesData[period].find((a) => a.id === id)
-      : null;
+    const item = isEdit ? activitiesData.find((a) => a.id === id) : null;
 
     const fields = [
       {
-        name: "title",
+        name: "name",
         label: "Título da tarefa",
         type: "text",
         required: true,
         full: true,
-        value: item?.title || "",
+        value: item?.name || "",
       },
       {
         name: "category",
@@ -877,11 +787,11 @@ document.addEventListener("DOMContentLoaded", () => {
         value: item?.category || "",
       },
       {
-        name: "date",
+        name: "data_prazo",
         label: "Data / prazo",
         type: "text",
         required: true,
-        value: item?.date || "",
+        value: item?.data_prazo || "",
         placeholder: "Ex: Hoje, 14:00",
       },
       {
@@ -911,7 +821,7 @@ document.addEventListener("DOMContentLoaded", () => {
         label: "Período",
         type: "select",
         required: true,
-        value: period,
+        value: item?.period || currentPeriod,
         options: [
           { value: "daily", label: "Diário" },
           { value: "weekly", label: "Semanal" },
@@ -923,48 +833,47 @@ document.addEventListener("DOMContentLoaded", () => {
     openModal({
       title: isEdit ? "Editar tarefa" : "Nova tarefa",
       fields,
-      onSubmit(values) {
+      async onSubmit(values) {
         const progress = Math.max(
           0,
           Math.min(100, parseInt(values.progress, 10) || 0),
         );
         const payload = {
-          title: values.title.trim(),
+          name: values.name.trim(),
           category: values.category.trim(),
-          date: values.date.trim(),
+          data_prazo: values.data_prazo.trim(),
           status: values.status,
           progress,
+          period: values.period,
         };
-        const targetPeriod = values.period;
 
         if (isEdit) {
-          activitiesData[period] = activitiesData[period].filter(
-            (a) => a.id !== id,
-          );
-          activitiesData[targetPeriod].unshift({ id, ...payload });
+          const res = await apiPut(`/atividades/${id}`, payload);
+          Object.assign(item, res.data || payload);
         } else {
-          activitiesData[targetPeriod].unshift({ id: nextId(), ...payload });
+          const res = await apiPost("/atividades", payload);
+          activitiesData.unshift(res.data || { id: nextId(), ...payload });
         }
 
-        if (targetPeriod !== currentPeriod) {
+        if (payload.period !== currentPeriod) {
           segmentedBtns.forEach((b) => {
-            const isTarget = b.dataset.period === targetPeriod;
+            const isTarget = b.dataset.period === payload.period;
             b.classList.toggle("is-active", isTarget);
             b.setAttribute("aria-selected", String(isTarget));
           });
         }
-        renderActivities(targetPeriod);
+        renderActivities(payload.period);
         showToast(isEdit ? "Tarefa atualizada." : "Tarefa adicionada.");
       },
-      onDelete: isEdit ? () => performDeleteActivity(period, id) : null,
+      onDelete: isEdit ? () => performDeleteActivity(id) : null,
     });
   }
 
   document
     .getElementById("addActivityBtn")
-    .addEventListener("click", () => openActivityModal(currentPeriod, null));
+    .addEventListener("click", () => openActivityModal(null));
 
-  renderActivities("daily");
+  loadActivitiesData();
 
   /* ---------------------------------------------------------
      7. METAS — meta principal + metas secundárias
@@ -1729,10 +1638,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     switch (action) {
       case "edit-activity":
-        openActivityModal(currentPeriod, id);
+        openActivityModal(id);
         break;
       case "delete-activity":
-        deleteActivityWithConfirm(currentPeriod, id);
+        deleteActivityWithConfirm(id);
         break;
       case "edit-goal-main":
         openGoalModal(id, "lucro");
